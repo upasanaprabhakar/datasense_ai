@@ -21,10 +21,13 @@ const PORT = process.env.PORT || 3001;
 // Security & parsing
 app.use(helmet());
 app.use(cors({
-  origin: [
-    "https://datasense-ai-xi.vercel.app",
-    "http://localhost:5173"
-  ],
+  origin: function(origin, callback) {
+    if (!origin || origin.endsWith(".vercel.app") || origin === "http://localhost:5173") {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
   credentials: true,
 }));
 app.use(express.json({ limit: "10mb" }));
