@@ -305,7 +305,7 @@ export function Dashboard() {
           <div className="flex items-start justify-between mb-8">
             <div>
               <h1 className="text-4xl font-bold text-ds-text-primary mb-2">
-                {getGreeting()}, John
+                {getGreeting()}, Upasana
               </h1>
               <p className="text-ds-text-muted">
                 {totalProjects === 0
