@@ -174,17 +174,11 @@ export function Analysis() {
           {!projectId ? <NoProjectState /> : (
             <>
               <div className="text-center mb-8">
-                <div className="flex items-center justify-center gap-3 mb-3 flex-wrap">
-                  <h1 className="text-4xl font-bold text-ds-text-primary">
-                    {pipelineStatus === "complete" ? "Analysis Complete ✓" : `Analyzing your dataset${dots}`}
-                  </h1>
-                  <div className="flex items-center gap-1.5 px-3 py-1.5 bg-ds-secondary/10 border border-ds-secondary/30 rounded-full">
-                    <Zap className="w-3 h-3 text-ds-secondary" />
-                    <span className="text-xs font-medium text-ds-secondary">Built on Turgon AI</span>
-                  </div>
-                </div>
+                <h1 className="text-4xl font-bold text-ds-text-primary mb-3">
+                  {pipelineStatus === "complete" ? "Analysis Complete ✓" : `Analyzing your dataset${dots}`}
+                </h1>
                 <p className="text-ds-text-muted">Our AI agents are working together to understand your data</p>
-                <p className="text-xs text-ds-secondary/70 mt-1 tracking-widest uppercase font-medium">Multi-Agent Pipeline</p>
+                <p className="text-xs text-ds-text-muted/50 mt-1 tracking-widest uppercase font-medium">Multi-Agent Pipeline</p>
               </div>
 
               <div className="max-w-5xl mx-auto mb-6">

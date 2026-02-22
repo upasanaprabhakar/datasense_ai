@@ -71,19 +71,6 @@ export function Sidebar() {
         </div>
       </nav>
 
-      {/* Turgon AI Badge */}
-      <div className="px-4 pb-4">
-        <div className="bg-gradient-to-br from-ds-secondary/10 to-ds-primary/5 border border-ds-secondary/20 rounded-2xl p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <Zap className="w-4 h-4 text-ds-secondary flex-shrink-0" />
-            <span className="text-xs font-bold text-ds-secondary uppercase tracking-wider">Built on Turgon AI</span>
-          </div>
-          <p className="text-xs text-ds-text-muted leading-relaxed">
-            Powered by a multi-agent pipeline — Atlas, Sage & Guardian work together to deliver production-grade data documentation.
-          </p>
-        </div>
-      </div>
-
       {/* User Profile */}
       <div className="p-4 border-t border-ds-border">
         <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-ds-surface cursor-pointer transition-colors group">
