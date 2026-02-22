@@ -36,7 +36,7 @@ export function Navbar() {
 
           {/* User Avatar */}
           <button className="w-8 h-8 rounded-full bg-gradient-to-br from-ds-primary to-ds-secondary flex items-center justify-center text-xs font-bold text-white hover:scale-105 transition-transform">
-            JD
+            UP
           </button>
         </div>
       </div>

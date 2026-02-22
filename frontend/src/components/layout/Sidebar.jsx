@@ -88,14 +88,14 @@ export function Sidebar() {
       <div className="p-4 border-t border-ds-border">
         <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-ds-surface cursor-pointer transition-colors group">
           <div className="w-9 h-9 rounded-full bg-gradient-to-br from-ds-primary to-ds-secondary flex items-center justify-center text-xs font-bold text-white flex-shrink-0">
-            JD
+            UP
           </div>
           <div className="flex-1 min-w-0">
             <div className="text-sm font-medium text-ds-text-primary truncate">
-              John Doe
+              Upasana Prabhakar
             </div>
             <div className="text-xs text-ds-text-muted truncate">
-              john@company.com
+              upasanaprabhakar35@gmail.com
             </div>
           </div>
           <Settings className="w-4 h-4 text-ds-text-muted group-hover:text-ds-text-primary transition-colors flex-shrink-0" />
