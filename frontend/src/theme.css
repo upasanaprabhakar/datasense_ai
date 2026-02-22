@@ -2,69 +2,128 @@
 
 :root {
   --font-size: 16px;
-  --ds-background: #0d0d1a;
-  --ds-surface: rgba(18, 18, 42, 0.6);
-  --ds-surface-solid: #12122a;
-  --ds-border: #1e1e3f;
-  --ds-primary: #6366f1;
-  --ds-secondary: #8b5cf6;
-  --ds-glow: rgba(99, 102, 241, 0.3);
-  --ds-success: #22c55e;
-  --ds-warning: #f59e0b;
-  --ds-error: #ef4444;
-  --ds-text-primary: #f0f0ff;
-  --ds-text-muted: #6b7280;
+
+  /* ── Base — true dark navy blue, visibly different from black ── */
+  --ds-background:    #060e1f;
+  --ds-surface:       rgba(8, 18, 38, 0.7);
+  --ds-surface-solid: #081226;
+  --ds-border:        #112240;
+
+  /* ── Accents — clear blue + sky teal ── */
+  --ds-primary:       #4f8ef7;
+  --ds-secondary:     #38bdf8;
+  --ds-glow:          rgba(79, 142, 247, 0.28);
+
+  /* ── Semantic ── */
+  --ds-success:       #10b981;
+  --ds-warning:       #f59e0b;
+  --ds-error:         #f43f5e;
+
+  /* ── Text ── */
+  --ds-text-primary:  #e2eafc;
+  --ds-text-muted:    #4a607a;
+
+  /* ── Fonts ── */
   --font-heading: 'Space Grotesk', sans-serif;
-  --font-body: 'Inter', sans-serif;
-  --font-mono: 'JetBrains Mono', monospace;
+  --font-body:    'Inter', sans-serif;
+  --font-mono:    'JetBrains Mono', monospace;
 }
 
 @theme inline {
-  --color-ds-background: var(--ds-background);
-  --color-ds-surface: var(--ds-surface);
+  --color-ds-background:    var(--ds-background);
+  --color-ds-surface:       var(--ds-surface);
   --color-ds-surface-solid: var(--ds-surface-solid);
-  --color-ds-border: var(--ds-border);
-  --color-ds-primary: var(--ds-primary);
-  --color-ds-secondary: var(--ds-secondary);
-  --color-ds-glow: var(--ds-glow);
-  --color-ds-success: var(--ds-success);
-  --color-ds-warning: var(--ds-warning);
-  --color-ds-error: var(--ds-error);
-  --color-ds-text-primary: var(--ds-text-primary);
-  --color-ds-text-muted: var(--ds-text-muted);
+  --color-ds-border:        var(--ds-border);
+  --color-ds-primary:       var(--ds-primary);
+  --color-ds-secondary:     var(--ds-secondary);
+  --color-ds-glow:          var(--ds-glow);
+  --color-ds-success:       var(--ds-success);
+  --color-ds-warning:       var(--ds-warning);
+  --color-ds-error:         var(--ds-error);
+  --color-ds-text-primary:  var(--ds-text-primary);
+  --color-ds-text-muted:    var(--ds-text-muted);
 }
 
 @layer base {
   * {
-    outline-color: rgb(99 102 241 / 0.5);
+    outline-color: rgb(79 142 247 / 0.4);
   }
+
   body {
     @apply bg-ds-background text-ds-text-primary;
     font-family: var(--font-body);
+    /* multi-layer background: top blue halo + deep navy base */
+    background-color: #060e1f;
+    background-image:
+      radial-gradient(ellipse 90% 55% at 50% 0%, rgba(56, 189, 248, 0.07) 0%, transparent 65%),
+      radial-gradient(ellipse 60% 40% at 80% 80%, rgba(79, 142, 247, 0.06) 0%, transparent 60%),
+      radial-gradient(ellipse 50% 35% at 15% 60%, rgba(56, 189, 248, 0.04) 0%, transparent 55%);
   }
+
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-heading);
+    letter-spacing: -0.01em;
   }
+
   code, pre {
     font-family: var(--font-mono);
   }
 }
 
+/* ── Neural mesh animation ── */
 @keyframes pulse-glow {
-  0%, 100% { opacity: 0.08; }
-  50% { opacity: 0.15; }
+  0%, 100% { opacity: 0.15; }
+  50%       { opacity: 0.28; }
 }
 
 .neural-bg {
   animation: pulse-glow 8s ease-in-out infinite;
 }
 
-::-webkit-scrollbar { width: 8px; height: 8px; }
-::-webkit-scrollbar-track { background: var(--ds-surface-solid); border-radius: 4px; }
-::-webkit-scrollbar-thumb { background: var(--ds-border); border-radius: 4px; }
+/* ── Scrollbars ── */
+::-webkit-scrollbar       { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #081226; border-radius: 4px; }
+::-webkit-scrollbar-thumb { background: #112240; border-radius: 4px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--ds-primary); }
 
+/* ── Text selection ── */
 ::selection {
-  background-color: rgba(99, 102, 241, 0.3);
+  background-color: rgba(79, 142, 247, 0.25);
   color: var(--ds-text-primary);
+}
+
+/* ── Card glass effect ── */
+.card-glass {
+  background: rgba(8, 18, 38, 0.7);
+  border: 1px solid #112240;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 4px 32px rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(12px);
+}
+
+/* ── Glow utilities ── */
+.glow-blue  { box-shadow: 0 0 24px rgba(79, 142, 247, 0.4); }
+.glow-teal  { box-shadow: 0 0 24px rgba(56, 189, 248, 0.35); }
+.glow-green { box-shadow: 0 0 24px rgba(16, 185, 129, 0.35); }
+
+/* ── Stat card top accent borders ── */
+.accent-blue  { border-top: 2px solid #4f8ef7; }
+.accent-teal  { border-top: 2px solid #38bdf8; }
+.accent-green { border-top: 2px solid #10b981; }
+.accent-rose  { border-top: 2px solid #f43f5e; }
+
+/* ── Terminal ── */
+.terminal-block {
+  background: #03080f;
+  border: 1px solid #112240;
+  border-radius: 10px;
+  box-shadow: inset 0 2px 16px rgba(0, 0, 0, 0.6);
+}
+
+/* ── Focus ring ── */
+input:focus, textarea:focus, select:focus {
+  outline: none;
+  border-color: var(--ds-primary);
+  box-shadow: 0 0 0 3px rgba(79, 142, 247, 0.15);
 }

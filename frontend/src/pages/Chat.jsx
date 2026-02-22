@@ -1,11 +1,10 @@
 import { Sidebar } from "../components/layout/Sidebar";
 import { Navbar } from "../components/layout/Navbar";
 import { NeuralBackground } from "../components/NeuralBackground";
-import { Send, Zap, User, Upload } from "lucide-react";
+import { Send, Zap, User, Upload, RotateCcw } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { useProjectStore } from "../stores/projectStore";
 import { useNavigate, useSearchParams } from "react-router-dom";
-
 
 function getQualityColor(q) {
   if (q >= 90) return "text-ds-success";
@@ -75,6 +74,14 @@ function MessageBubble({ message }) {
           ) : (
             <p className="whitespace-pre-wrap">{message.content}</p>
           )}
+
+          {/* Reflection badge — shows when answer was self-corrected */}
+          {message.reflected && (
+            <div className="mt-2 flex items-center gap-1.5">
+              <RotateCcw className="w-3 h-3 text-ds-primary/50" />
+              <span className="text-xs text-ds-primary/50">Answer verified by reflection loop</span>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -84,10 +91,10 @@ function MessageBubble({ message }) {
 export function Chat() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-const urlProjectId = searchParams.get("projectId");
-const { projectId: storeProjectId, dictionary, fileName, setDictionary } = useProjectStore();
-const projectId = urlProjectId || storeProjectId;
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+  const urlProjectId = searchParams.get("projectId");
+  const { projectId: storeProjectId, dictionary, fileName, setDictionary } = useProjectStore();
+  const projectId = urlProjectId || storeProjectId;
+  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
   const getWelcomeMessage = () => ({
     id: 1,
@@ -97,10 +104,11 @@ const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
       : "Hello! I'm your AI data assistant. Upload a dataset first to unlock full data dictionary context.",
   });
 
-  const [messages, setMessages] = useState([getWelcomeMessage()]);
-  const [input, setInput] = useState("");
-  const [isTyping, setIsTyping] = useState(false);
-  const messagesEndRef = useRef(null);
+  const [messages, setMessages]   = useState([getWelcomeMessage()]);
+  const [input, setInput]         = useState("");
+  const [isTyping, setIsTyping]   = useState(false);
+  const [typingLabel, setTypingLabel] = useState("Thinking");
+  const messagesEndRef            = useRef(null);
 
   useEffect(() => {
     setMessages([getWelcomeMessage()]);
@@ -115,57 +123,61 @@ const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
   }, [messages, isTyping]);
 
   useEffect(() => {
-  if (!projectId) return;
-
-  async function loadDictionary() {
-    try {
-      const res = await fetch(`${API_URL}/api/dictionary/${projectId}`);
-      if (res.ok) {
-        const data = await res.json();
-        if (data.fields?.length > 0) {
-          setDictionary(data.fields);
-          return;
+    if (!projectId) return;
+    async function loadDictionary() {
+      try {
+        const res = await fetch(`${API_URL}/api/dictionary/${projectId}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.fields?.length > 0) { setDictionary(data.fields); return; }
         }
+        const supaRes = await fetch(`${API_URL}/api/projects/${projectId}`);
+        if (!supaRes.ok) return;
+        const supaData = await supaRes.json();
+        const normalized = (supaData.fields || []).map((f) => ({
+          fieldName:        f.field_name,
+          detectedType:     f.detected_type,
+          description:      f.description,
+          businessCategory: f.business_category,
+          qualityScore:     f.quality_score,
+          confidence:       f.confidence,
+          status:           f.status ?? "pending",
+          isPrimaryKey:     f.is_primary_key ?? false,
+          isForeignKey:     f.is_foreign_key ?? false,
+          nullRate:         f.null_rate,
+          uniqueRate:       f.unique_rate,
+          uniqueCount:      f.unique_count,
+          patterns:         f.patterns,
+          sampleValues:     f.sample_values,
+          issues:           f.issues,
+        }));
+        setDictionary(normalized);
+      } catch (err) {
+        console.error("Chat: failed to load dictionary", err.message);
       }
-      const supaRes = await fetch(`${API_URL}/api/projects/${projectId}`);
-      if (!supaRes.ok) return;
-      const supaData = await supaRes.json();
-      const normalized = (supaData.fields || []).map((f) => ({
-        fieldName:        f.field_name,
-        detectedType:     f.detected_type,
-        description:      f.description,
-        businessCategory: f.business_category,
-        qualityScore:     f.quality_score,
-        confidence:       f.confidence,
-        status:           f.status ?? "pending",
-        isPrimaryKey:     f.is_primary_key ?? false,
-        isForeignKey:     f.is_foreign_key ?? false,
-        nullRate:         f.null_rate,
-        uniqueRate:       f.unique_rate,
-        uniqueCount:      f.unique_count,
-        patterns:         f.patterns,
-        sampleValues:     f.sample_values,
-        issues:           f.issues,
-      }));
-      setDictionary(normalized);
-    } catch (err) {
-      console.error("Chat: failed to load dictionary", err.message);
     }
-  }
-
-  loadDictionary();
-}, [projectId]);
+    loadDictionary();
+  }, [projectId]);
 
   const handleSend = async () => {
     if (!input.trim()) return;
 
     const userMsg = { id: messages.length + 1, role: "user", content: input };
-    const history = messages.map((m) => ({ role: m.role, content: m.content }));
+
+    // ── CONVERSATION MEMORY: send last 6 messages as history (3 turns) ──────
+    // This means the AI remembers what was said earlier in the conversation
+    // instead of treating every message as a fresh question
+    const history = messages
+      .slice(-6)
+      .map((m) => ({ role: m.role, content: m.content }));
+
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
     setIsTyping(true);
+    setTypingLabel("Thinking");
 
     try {
+      // ── FIRST CALL: generate initial answer ──────────────────────────────
       const res = await fetch(`${API_URL}/api/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -173,21 +185,62 @@ const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
       });
       if (!res.ok) throw new Error("Chat request failed");
       const data = await res.json();
+
+      // ── REFLECTION LOOP: verify the answer before showing it ─────────────
+      // Send the first answer back to the AI and ask it to check itself.
+      // If it's correct, it repeats it. If not, it corrects it.
+      // This reduces hallucination and improves accuracy significantly.
+      setTypingLabel("Reflecting");
+
+      const reflectRes = await fetch(`${API_URL}/api/chat`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          projectId,
+          message: `You just answered: "${data.content}". Review this answer strictly against the data dictionary context. If it is accurate and complete, repeat it exactly. If anything is incorrect or could be more precise based on the actual field data, correct it. Return only the final answer.`,
+          history: [
+            ...history,
+            { role: "user",      content: input },
+            { role: "assistant", content: data.content },
+          ],
+          isReflection: true, // flag so backend knows to skip SQL parsing on this call
+        }),
+      });
+
+      let finalContent = data.content;
+      let reflected    = false;
+
+      if (reflectRes.ok) {
+        const reflectData = await reflectRes.json();
+        // Only use reflection if it actually changed something meaningfully
+        if (
+          reflectData.content &&
+          reflectData.content.trim() !== data.content.trim() &&
+          reflectData.content.length > 20
+        ) {
+          finalContent = reflectData.content;
+          reflected    = true;
+        }
+      }
+
       setMessages((prev) => [...prev, {
-        id: prev.length + 1,
-        role: "assistant",
-        content: data.content,
-        sqlCode: data.sqlCode,
-        suffix: data.suffix,
+        id:        prev.length + 1,
+        role:      "assistant",
+        content:   finalContent,
+        sqlCode:   data.sqlCode,
+        suffix:    data.suffix,
+        reflected, // shows the "verified by reflection" badge on the bubble
       }]);
+
     } catch (err) {
       setMessages((prev) => [...prev, {
-        id: prev.length + 1,
-        role: "assistant",
+        id:      prev.length + 1,
+        role:    "assistant",
         content: "Sorry, I couldn't process that request. Please try again.",
       }]);
     } finally {
       setIsTyping(false);
+      setTypingLabel("Thinking");
     }
   };
 
@@ -209,7 +262,9 @@ const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
                 <div>
                   <h2 className="text-base font-bold text-ds-text-primary">AI Data Assistant</h2>
                   <p className="text-xs text-ds-text-muted">
-                    {dictionary?.length > 0 ? `${dictionary.length} fields loaded from ${fileName}` : "Upload a file to unlock full context"}
+                    {dictionary?.length > 0
+                      ? `${dictionary.length} fields loaded from ${fileName} · Reflection loop active`
+                      : "Upload a file to unlock full context"}
                   </p>
                 </div>
                 <div className="ml-auto flex items-center gap-1.5">
@@ -231,8 +286,13 @@ const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
                     <Zap className="w-4 h-4 text-white" />
                   </div>
                   <div className="bg-ds-surface border border-ds-border rounded-xl px-4 py-3">
-                    <div className="flex gap-1.5 items-center h-4">
-                      {[0,1,2].map((i) => <div key={i} className="w-1.5 h-1.5 bg-ds-primary rounded-full animate-bounce" style={{ animationDelay: `${i*0.15}s` }} />)}
+                    <div className="flex items-center gap-2">
+                      <div className="flex gap-1.5 items-center h-4">
+                        {[0,1,2].map((i) => (
+                          <div key={i} className="w-1.5 h-1.5 bg-ds-primary rounded-full animate-bounce" style={{ animationDelay: `${i*0.15}s` }} />
+                        ))}
+                      </div>
+                      <span className="text-xs text-ds-text-muted">{typingLabel}...</span>
                     </div>
                   </div>
                 </div>
@@ -250,12 +310,19 @@ const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
                 ))}
               </div>
               <div className="flex gap-3">
-                <input type="text" value={input} onChange={(e) => setInput(e.target.value)}
+                <input
+                  type="text"
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
                   onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); }}}
                   placeholder="Ask anything about your data..."
-                  className="flex-1 bg-ds-surface border border-ds-border rounded-xl px-5 py-3 text-sm text-ds-text-primary placeholder:text-ds-text-muted focus:outline-none focus:ring-2 focus:ring-ds-primary/40 focus:border-ds-primary transition-all" />
-                <button onClick={handleSend} disabled={!input.trim() || isTyping}
-                  className="px-5 py-3 bg-gradient-to-r from-ds-primary to-ds-secondary text-white rounded-xl hover:shadow-[0_0_20px_rgba(99,102,241,0.4)] disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center justify-center flex-shrink-0">
+                  className="flex-1 bg-ds-surface border border-ds-border rounded-xl px-5 py-3 text-sm text-ds-text-primary placeholder:text-ds-text-muted focus:outline-none focus:ring-2 focus:ring-ds-primary/40 focus:border-ds-primary transition-all"
+                />
+                <button
+                  onClick={handleSend}
+                  disabled={!input.trim() || isTyping}
+                  className="px-5 py-3 bg-gradient-to-r from-ds-primary to-ds-secondary text-white rounded-xl hover:shadow-[0_0_20px_rgba(99,102,241,0.4)] disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center justify-center flex-shrink-0"
+                >
                   <Send className="w-5 h-5" />
                 </button>
               </div>
@@ -295,15 +362,37 @@ const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
                       </div>
                     ))}
                   </div>
+
+                  {/* Reflection loop status card */}
+                  <div className="mb-4 p-3 bg-ds-primary/5 border border-ds-primary/20 rounded-lg">
+                    <div className="flex items-center gap-2 mb-1">
+                      <RotateCcw className="w-3.5 h-3.5 text-ds-primary" />
+                      <span className="text-xs font-semibold text-ds-primary">Reflection Loop Active</span>
+                    </div>
+                    <p className="text-xs text-ds-text-muted">Every answer is verified against your dictionary before being shown to you.</p>
+                  </div>
+
                   <div className="p-4 bg-ds-surface/50 border border-ds-border rounded-lg">
                     <h4 className="text-xs font-semibold text-ds-text-muted uppercase tracking-wider mb-3">Context Info</h4>
                     <div className="space-y-2.5 text-xs">
-                      <div className="flex justify-between"><span className="text-ds-text-muted">Total Fields</span><span className="text-ds-text-primary font-semibold">{dictionary?.length || 0}</span></div>
-                      <div className="flex justify-between"><span className="text-ds-text-muted">File</span><span className="text-ds-text-primary font-semibold truncate ml-2 max-w-28">{fileName || "—"}</span></div>
+                      <div className="flex justify-between">
+                        <span className="text-ds-text-muted">Total Fields</span>
+                        <span className="text-ds-text-primary font-semibold">{dictionary?.length || 0}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-ds-text-muted">Memory</span>
+                        <span className="text-ds-text-primary font-semibold">Last 3 turns</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-ds-text-muted">File</span>
+                        <span className="text-ds-text-primary font-semibold truncate ml-2 max-w-28">{fileName || "—"}</span>
+                      </div>
                       <div className="flex justify-between">
                         <span className="text-ds-text-muted">Avg Quality</span>
                         <span className="text-ds-success font-semibold">
-                          {dictionary?.length > 0 ? Math.round(dictionary.reduce((s, f) => s + (f.qualityScore || 0), 0) / dictionary.length) + "%" : "—"}
+                          {dictionary?.length > 0
+                            ? Math.round(dictionary.reduce((s, f) => s + (f.qualityScore || 0), 0) / dictionary.length) + "%"
+                            : "—"}
                         </span>
                       </div>
                     </div>

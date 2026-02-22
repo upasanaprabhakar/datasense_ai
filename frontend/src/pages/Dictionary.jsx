@@ -1,7 +1,7 @@
 import { Sidebar } from "../components/layout/Sidebar";
 import { Navbar } from "../components/layout/Navbar";
 import { LineageGraph } from "../components/LineageGraph";
-import { DatasetSummary, ConfidenceTooltip } from "../components/DatasetSummaryAndTooltip";
+import { DatasetSummary } from "../components/DatasetSummaryAndTooltip";
 import { NeuralBackground } from "../components/NeuralBackground";
 import { Download, FileJson, FileText, Search, Check, X, Edit3, Upload, AlertTriangle } from "lucide-react";
 import { GlowButton } from "../components/GlowButton";
@@ -334,7 +334,7 @@ export function Dictionary() {
                     <table className="w-full">
                       <thead>
                         <tr className="border-b border-ds-border">
-                          {["Field Name","Data Type","Description","Quality","Confidence","Status","Actions"].map((h) => (
+                          {["Field Name","Data Type","Description","Quality","Status","Actions"].map((h) => (
                             <th key={h} className="px-5 py-3.5 text-left text-xs font-semibold text-ds-text-muted uppercase tracking-wider whitespace-nowrap">{h}</th>
                           ))}
                         </tr>
@@ -371,9 +371,6 @@ export function Dictionary() {
                                 </div>
                                 <span className={`text-xs font-semibold ${getQualityColor(row.qualityScore)}`}>{row.qualityScore}%</span>
                               </div>
-                            </td>
-                            <td className="px-5 py-3.5">
-                              <ConfidenceTooltip field={row} />
                             </td>
                             <td className="px-5 py-3.5">
                               <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium capitalize ${statusColors[row.status]}`}>{row.status}</span>
